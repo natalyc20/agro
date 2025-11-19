@@ -266,17 +266,21 @@
             };
 
             // NUEVA FUNCIÓN PARA CAPTURA DE DATOS (WEB3FORMS)
-            const handleDataCapture = async () => {
-                const WEB3FORMS_ACCESS_KEY = '69301a21-733e-47f9-ab1d-7c391454628a'; // <--- ⚠️ REEMPLAZAR ESTA LLAVE ⚠️
 
-                if (WEB3FORMS_ACCESS_KEY.includes('69301a21-733e-47f9-ab1d-7c391454628a')) {
-                    alert("¡ADVERTENCIA! Debe reemplazar la '69301a21-733e-47f9-ab1d-7c391454628a' con su llave de Web3Forms (obtenida en https://web3forms.com/) para guardar los datos.");
-                    return;
-                }
+            const handleDataCapture = async () => {
+    // ¡Su llave real está aquí!
+    const WEB3FORMS_ACCESS_KEY = '69301a21-733e-47f9-ab1d-7c391454628a'; 
+    
+    // Si la llave de Web3Forms es una cadena vacía, detenemos el envío (solo por precaución)
+    if (!WEB3FORMS_ACCESS_KEY) { 
+        alert("¡ADVERTENCIA! La llave de acceso está vacía. No se guardarán los datos.");
+        return;
+    }
+
+    setSubmissionStatus('loading');
+    const totalScore = calculateTotalScore();
+    const overallLevel = getOverallLevel(totalScore);
                 
-                setSubmissionStatus('loading');
-                const totalScore = calculateTotalScore();
-                const overallLevel = getOverallLevel(totalScore);
 
                 const dataToSend = {
                     // CONFIGURACIÓN DE WEB3FORMS:
