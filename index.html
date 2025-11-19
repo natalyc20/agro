@@ -23,9 +23,9 @@
         const Chart = window.Chart; // Acceso global a Chart.js
 
         // ====================================================================
-        // I. CONFIGURACIÓN DE CAPTURA DE DATOS (IMPORTANTE: CAMBIAR ESTO)
+        // I. CONFIGURACIÓN DE CAPTURA DE DATOS
         // ====================================================================
-        // NOTA: La URL de envío y la llave de acceso se definen dentro de handleDataCapture.
+        // La llave se usa en handleDataCapture().
         
         // ====================================================================
         // II. COMPONENTES DE GRÁFICOS (Chart.js)
@@ -251,7 +251,7 @@
                 setSubmissionStatus('idle');
             };
 
-            // INICIO: CAMBIO 1: Activar guardado automático aquí
+            // INICIO: LÓGICA DE NAVEGACIÓN CORREGIDA (GUARDADO AUTOMÁTICO)
             const goToNextStep = () => {
                 if (currentStep < dimensions.length - 1) {
                     setCurrentStep(currentStep + 1);
@@ -263,7 +263,7 @@
                     setShowResults(true);
                 }
             };
-            // FIN: CAMBIO 1
+            // FIN: LÓGICA DE NAVEGACIÓN CORREGIDA
 
             const goToPrevStep = () => {
                 if (currentStep > 0) {
@@ -271,14 +271,15 @@
                 }
             };
 
-            // INICIO: CAMBIO 2: Función handleDataCapture corregida (se elimina la advertencia)
+            // INICIO: FUNCIÓN handleDataCapture CORREGIDA (SIN ALERTA)
             const handleDataCapture = async () => {
-                const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; // Llave de acceso del usuario
-                
-                // Bloqueamos si la llave es la genérica de ejemplo (aunque la del usuario ya está aquí)
-                if (!WEB3FORMS_ACCESS_KEY || WEB3FORMS_ACCESS_KEY === 'YOUR_WEB3FORMS_ACCESS_KEY') {
+                // Su llave real de Web3Forms
+                const WEB3FORMS_ACCESS_KEY = '69301a21-733e-47f9-ab1d-7c391454628a'; 
+
+                // Si la llave está vacía, marcamos error, pero NO disparamos un alert()
+                if (!WEB3FORMS_ACCESS_KEY) { 
                     setSubmissionStatus('error');
-                    console.error("ERROR: La llave de acceso de Web3Forms está vacía o es la de ejemplo.");
+                    console.error("ERROR: La llave de acceso de Web3Forms está vacía. No se guardarán los datos.");
                     return;
                 }
                 
@@ -290,7 +291,7 @@
                     // CONFIGURACIÓN DE WEB3FORMS:
                     'access_key': WEB3FORMS_ACCESS_KEY,
                     
-                    // DATOS DE CONTACTO (Solo companyName está disponible en este código)
+                    // DATOS DE CONTACTO
                     'Empresa': companyName,
                     
                     // PUNTAJES DE RESUMEN
@@ -312,7 +313,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Accept': 'application/json' // Recomendado por Web3Forms para JSON
+                            'Accept': 'application/json' 
                         },
                         body: JSON.stringify(dataToSend)
                     });
@@ -321,7 +322,6 @@
                         setSubmissionStatus('success');
                     } else {
                         setSubmissionStatus('error');
-                        // Web3Forms devuelve una respuesta de texto con detalles en caso de error
                         console.error('Error al enviar los datos:', response.status, await response.text());
                     }
                 } catch (error) {
@@ -329,7 +329,7 @@
                     console.error('Error de red/fetch:', error);
                 }
             };
-            // FIN: CAMBIO 2
+            // FIN: FUNCIÓN handleDataCapture CORREGIDA
 
             if (showResults) {
                 const totalScore = calculateTotalScore();
@@ -337,17 +337,8 @@
                 const radarData = getRadarData();
                 const barData = getBarData();
 
+                // submissionMessage ya no se usa, el estado se lee directamente en el bloque de botones.
                 let submissionMessage = null;
-                // El mensaje de estado ya no es necesario aquí porque está en el bloque de botones modificado.
-                // Sin embargo, mantendremos la lógica de `submissionMessage` para no romper nada, 
-                // aunque la visualización principal viene del bloque de botones.
-                if (submissionStatus === 'loading') {
-                    submissionMessage = <span className="text-blue-600 font-bold">...Enviando datos...</span>;
-                } else if (submissionStatus === 'success') {
-                    submissionMessage = <span className="text-green-600 font-bold">✅ Resultados guardados con éxito.</span>;
-                } else if (submissionStatus === 'error') {
-                    submissionMessage = <span className="text-red-600 font-bold">❌ Error al guardar los resultados. Revise la consola.</span>;
-                }
 
 
                 return (
@@ -372,7 +363,6 @@
                                 
                                 {/* Score General */}
                                 <div className="bg-gradient-to-r from-green-100 to-blue-100 rounded-xl p-6 mb-6">
-                                    {/* ... Contenido del Score General ... */}
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <p className="text-gray-600 text-lg mb-2">Puntaje Total</p>
@@ -439,7 +429,6 @@
                                 <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                                     📈 Análisis Detallado por Dimensión
                                 </h2>
-                                {/* ... Contenido del Análisis Detallado ... */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {dimensions.map((dim) => {
                                         const score = calculateDimensionScore(dim);
@@ -478,7 +467,6 @@
                                 <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                                     🏆 Próximos Pasos Recomendados
                                 </h2>
-                                {/* ... Contenido de Recomendaciones ... */}
                                 <div className="space-y-4">
                                     {dimensions
                                         .map(dim => ({
@@ -512,10 +500,10 @@
                             </div>
                         </div>
 
-                        {/* INICIO: CAMBIO 3: Bloque de botones modificado (Eliminado Guardar Manual) */}
+                        {/* INICIO: Bloque de botones MODIFICADO (Elimina Guardar Manual) */}
                         <div className="mt-8 flex justify-center flex-col md:flex-row gap-4 p-4 bg-white rounded-xl shadow-lg print:hidden">
                             
-                            {/* Estado del Guardado (automático) */}
+                            {/* Estado del Guardado (automático) - Sustituye al botón manual */}
                             <div className="flex items-center justify-center flex-1">
                                 <div className={`px-4 py-3 rounded-xl font-bold text-lg text-center
                                     ${submissionStatus === 'success' ? 'bg-green-100 text-green-700' : 
@@ -541,13 +529,12 @@
                                 La captura de datos es automática al hacer clic en 'Ver Resultados'.
                             </p>
                         </div>
-                        {/* FIN: CAMBIO 3 */}
+                        {/* FIN: Bloque de botones MODIFICADO */}
                     </div>
                 );
             }
 
             // Evaluation Form
-            // ... (Resto del código del formulario que ya funciona)
             const currentDimension = dimensions[currentStep];
             const progress = progressPercentage();
 
