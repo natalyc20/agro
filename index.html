@@ -166,15 +166,13 @@
         const MadurezDigitalAgro = () => {
             const [currentStep, setCurrentStep] = useState(0);
             const [showResults, setShowResults] = useState(false);
-            
-            // INICIO: NUEVAS VARIABLES DE ESTADO PARA DATOS DE CONTACTO
             const [companyName, setCompanyName] = useState('');
+            // INICIO DE CAMBIOS: Nuevos estados para los datos de contacto
             const [userName, setUserName] = useState('');
-            const [userRole, setUserRole] = useState('');
             const [userEmail, setUserEmail] = useState('');
             const [userPhone, setUserPhone] = useState('');
-            // FIN: NUEVAS VARIABLES DE ESTADO
-            
+            const [userRole, setUserRole] = useState('');
+            // FIN DE CAMBIOS
             const [responses, setResponses] = useState({});
             const [submissionStatus, setSubmissionStatus] = useState('idle'); // idle | loading | success | error
 
@@ -252,28 +250,38 @@
             };
 
             const resetEvaluation = () => {
-                // Reiniciar todas las variables de estado
                 setResponses({});
                 setCurrentStep(0);
                 setShowResults(false);
                 setCompanyName('');
-                setUserName(''); // Reiniciar
-                setUserRole(''); // Reiniciar
-                setUserEmail(''); // Reiniciar
-                setUserPhone(''); // Reiniciar
+                // INICIO DE CAMBIOS: Reiniciar nuevos estados
+                setUserName('');
+                setUserEmail('');
+                setUserPhone('');
+                setUserRole('');
+                // FIN DE CAMBIOS
                 setSubmissionStatus('idle');
             };
 
-            // INICIO: LÓGICA DE NAVEGACIÓN
+            // Lógica de navegación
             const goToNextStep = () => {
+                // Validación para el paso inicial (Paso 0)
+                if (currentStep === 0) {
+                    const isInitialFormComplete = companyName.trim() !== '' && userName.trim() !== '' && userEmail.trim() !== '' && userRole.trim() !== '';
+                    if (!isInitialFormComplete) {
+                        alert("Por favor, complete todos los campos obligatorios (Empresa, Nombre, Cargo, Email) antes de continuar.");
+                        return;
+                    }
+                }
+
                 if (currentStep < dimensions.length - 1) {
                     setCurrentStep(currentStep + 1);
                 } else if (currentStep === dimensions.length - 1) {
+                    // Guardado de datos automático antes de mostrar resultados
                     handleDataCapture(); 
                     setShowResults(true);
                 }
             };
-            // FIN: LÓGICA DE NAVEGACIÓN
 
             const goToPrevStep = () => {
                 if (currentStep > 0) {
@@ -281,10 +289,10 @@
                 }
             };
 
-            // INICIO: FUNCIÓN handleDataCapture ACTUALIZADA con todos los campos
+            // FUNCIÓN handleDataCapture MODIFICADA
             const handleDataCapture = async () => {
-                // ⚠️ ¡ACCIÓN REQUERIDA! REEMPLAZAR ESTA LLAVE CON SU LLAVE REAL DE WEB3FORMS ⚠️
-                const WEB3FORMS_ACCESS_KEY = '69301a21-733e-47f9-ab1d-7c391454628a'; // <-- PEGUE SU LLAVE ÚNICA AQUÍ
+                // Su llave real de Web3Forms
+                const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; 
 
                 if (!WEB3FORMS_ACCESS_KEY) { 
                     setSubmissionStatus('error');
@@ -300,12 +308,12 @@
                     // CONFIGURACIÓN DE WEB3FORMS:
                     'access_key': WEB3FORMS_ACCESS_KEY,
                     
-                    // DATOS DE CONTACTO (ACTUALIZADOS)
+                    // DATOS DE CONTACTO (MODIFICADO)
                     'Empresa': companyName,
-                    'Nombre': userName,      // NUEVO
-                    'Cargo': userRole,       // NUEVO
-                    'Email': userEmail,      // NUEVO
-                    'Telefono': userPhone,   // NUEVO
+                    'Nombre de Contacto': userName, 
+                    'Email de Contacto': userEmail,
+                    'Cargo': userRole,
+                    'Teléfono': userPhone, // Teléfono (opcional)
                     
                     // PUNTAJES DE RESUMEN
                     'Puntaje General': `${totalScore}/${getMaxScore()}`,
@@ -342,7 +350,6 @@
                     console.error('Error de red/fetch:', error);
                 }
             };
-            // FIN: FUNCIÓN handleDataCapture ACTUALIZADA
 
             if (showResults) {
                 const totalScore = calculateTotalScore();
@@ -363,8 +370,14 @@
                                         <h1 className="text-4xl font-bold text-gray-800 mb-2">
                                             Resultados de Madurez Digital
                                         </h1>
-                                        <p className="text-xl text-gray-600">Empresa: {companyName}</p>
-                                        <p className="text-md text-gray-500">Contacto: {userName} ({userRole})</p>
+                                        {/* INICIO DE CAMBIOS: Mostrar datos de contacto */}
+                                        <p className="text-xl text-gray-600">
+                                            Empresa: {companyName} | Contacto: {userName} ({userEmail})
+                                        </p>
+                                        <p className="text-md text-gray-500">
+                                            Cargo: {userRole} | Teléfono: {userPhone || 'No proporcionado'}
+                                        </p>
+                                        {/* FIN DE CAMBIOS */}
                                     </div>
                                     <button
                                         onClick={resetEvaluation}
@@ -513,7 +526,7 @@
                             </div>
                         </div>
 
-                        {/* Bloque de botones MODIFICADO (Muestra estado de guardado automático) */}
+                        {/* Bloque de botones */}
                         <div className="mt-8 flex justify-center flex-col md:flex-row gap-4 p-4 bg-white rounded-xl shadow-lg print:hidden">
                             
                             {/* Estado del Guardado (automático) - Sustituye al botón manual */}
@@ -551,8 +564,9 @@
             const currentDimension = dimensions[currentStep];
             const progress = progressPercentage();
             
-            // Lógica de deshabilitación actualizada para la primera pantalla
-            const isContactFormComplete = companyName.trim() !== '' && userName.trim() !== '' && userEmail.trim() !== '';
+            // INICIO DE CAMBIOS: Validar campos obligatorios del paso 0
+            const isInitialFormComplete = companyName.trim() !== '' && userName.trim() !== '' && userEmail.trim() !== '' && userRole.trim() !== '';
+            // FIN DE CAMBIOS
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 p-4">
@@ -580,75 +594,86 @@
                                 />
                             </div>
 
-                            {/* INICIO: Bloque de Inputs de Contacto (Paso 0) */}
+                            {/* Company Name Input - MODIFICADO para incluir todos los campos de contacto */}
                             {currentStep === 0 && Object.keys(responses).length === 0 && (
-                                <div className="mb-6 p-6 bg-blue-50 rounded-xl">
-                                    <h2 className="text-xl font-semibold text-gray-700 mb-4">
-                                        Datos de Contacto (Requerido: Empresa, Nombre, Email)
-                                    </h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {/* Empresa */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Empresa *</label>
-                                            <input
-                                                type="text"
-                                                value={companyName}
-                                                onChange={(e) => setCompanyName(e.target.value)}
-                                                placeholder="Ej: Agrícola San José"
-                                                className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
-                                                required
-                                            />
-                                        </div>
-                                        {/* Nombre */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
-                                            <input
-                                                type="text"
-                                                value={userName}
-                                                onChange={(e) => setUserName(e.target.value)}
-                                                placeholder="Su Nombre Completo"
-                                                className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
-                                                required
-                                            />
-                                        </div>
-                                        {/* Cargo */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Cargo/Rol</label>
-                                            <input
-                                                type="text"
-                                                value={userRole}
-                                                onChange={(e) => setUserRole(e.target.value)}
-                                                placeholder="Ej: Gerente General"
-                                                className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
-                                            />
-                                        </div>
-                                        {/* Email */}
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                                            <input
-                                                type="email"
-                                                value={userEmail}
-                                                onChange={(e) => setUserEmail(e.target.value)}
-                                                placeholder="correo@ejemplo.com"
-                                                className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
-                                                required
-                                            />
-                                        </div>
-                                        {/* Teléfono */}
-                                        <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                                            <input
-                                                type="tel"
-                                                value={userPhone}
-                                                onChange={(e) => setUserPhone(e.target.value)}
-                                                placeholder="Opcional"
-                                                className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
-                                            />
-                                        </div>
+                                <div className="mb-6 p-6 bg-blue-50 rounded-xl space-y-4">
+                                    <h3 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Información de Contacto</h3>
+                                    
+                                    {/* Empresa */}
+                                    <div>
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">
+                                            Nombre de su empresa (<span className="text-red-500">*</span>):
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={companyName}
+                                            onChange={(e) => setCompanyName(e.target.value)}
+                                            placeholder="Ej: Agrícola San José"
+                                            className="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    {/* Nombre */}
+                                    <div>
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">
+                                            Su Nombre (Contacto) (<span className="text-red-500">*</span>):
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={userName}
+                                            onChange={(e) => setUserName(e.target.value)}
+                                            placeholder="Su nombre y apellido"
+                                            className="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Cargo */}
+                                    <div>
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">
+                                            Su Cargo (<span className="text-red-500">*</span>):
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={userRole}
+                                            onChange={(e) => setUserRole(e.target.value)}
+                                            placeholder="Gerente General, Director de Operaciones, etc."
+                                            className="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    {/* Email */}
+                                    <div>
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">
+                                            Su Email (para recibir resultados) (<span className="text-red-500">*</span>):
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={userEmail}
+                                            onChange={(e) => setUserEmail(e.target.value)}
+                                            placeholder="correo@empresa.com"
+                                            className="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                            required
+                                        />
+                                    </div>
+                                    
+                                    {/* Teléfono */}
+                                    <div>
+                                        <label className="block text-lg font-semibold text-gray-700 mb-2">
+                                            Su Teléfono (Opcional):
+                                        </label>
+                                        <input
+                                            type="tel"
+                                            value={userPhone}
+                                            onChange={(e) => setUserPhone(e.target.value)}
+                                            placeholder="+56 9 1234 5678"
+                                            className="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                        />
                                     </div>
                                 </div>
                             )}
-                            {/* FIN: Bloque de Inputs de Contacto (Paso 0) */}
 
                             {/* Dimension Progress */}
                             <div className="flex items-center justify-between mb-4">
@@ -728,12 +753,13 @@
 
                             <button
                                 onClick={goToNextStep}
-                                // Lógica de deshabilitación: Debe completar la dimensión actual Y, si es el paso 0, el formulario de contacto.
-                                disabled={!isStepComplete() || (currentStep === 0 && !isContactFormComplete)}
+                                // INICIO DE CAMBIOS: Nueva validación para el paso 0
+                                disabled={!isStepComplete() || (currentStep === 0 && !isInitialFormComplete)}
+                                // FIN DE CAMBIOS
                                 className={`
                                     flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all
                                     ${
-                                        !isStepComplete() || (currentStep === 0 && !isContactFormComplete)
+                                        !isStepComplete() || (currentStep === 0 && !isInitialFormComplete)
                                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                             : currentStep < dimensions.length - 1
                                             ? 'bg-green-500 text-white hover:bg-green-600'
