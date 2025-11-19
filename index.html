@@ -25,7 +25,6 @@
         // ====================================================================
         // I. CONFIGURACIÓN DE CAPTURA DE DATOS
         // ====================================================================
-        // La llave se usa en handleDataCapture().
         
         // ====================================================================
         // II. COMPONENTES DE GRÁFICOS (Chart.js)
@@ -167,12 +166,10 @@
             const [currentStep, setCurrentStep] = useState(0);
             const [showResults, setShowResults] = useState(false);
             const [companyName, setCompanyName] = useState('');
-            // INICIO DE CAMBIOS: Nuevos estados para los datos de contacto
             const [userName, setUserName] = useState('');
             const [userEmail, setUserEmail] = useState('');
             const [userPhone, setUserPhone] = useState('');
             const [userRole, setUserRole] = useState('');
-            // FIN DE CAMBIOS
             const [responses, setResponses] = useState({});
             const [submissionStatus, setSubmissionStatus] = useState('idle'); // idle | loading | success | error
 
@@ -194,6 +191,33 @@
                 const scores = questionIds.map(id => responses[id] || 0);
                 return scores.reduce((a, b) => a + b, 0);
             };
+            
+            // INICIO: NUEVA FUNCIÓN PARA FORMATEAR RESPUESTAS
+            const formatResponsesForSubmission = () => {
+                let formattedText = "--- Detalle Completo de Respuestas ---\n\n";
+
+                dimensions.forEach(dim => {
+                    const dimScore = calculateDimensionScore(dim);
+                    formattedText += `## ${dim.icon} ${dim.name} (Puntaje: ${dimScore}/25)\n`;
+                    formattedText += "--------------------------------------------------\n";
+                    
+                    dim.questions.forEach((q, qIndex) => {
+                        const responseValue = responses[q.id];
+                        if (responseValue !== undefined) {
+                            const selectedOption = q.options.find(opt => opt.value === responseValue);
+                            const selectedLabel = selectedOption ? selectedOption.label : 'No respondida';
+                            
+                            formattedText += `${qIndex + 1}. Pregunta: ${q.text}\n`;
+                            formattedText += `   > **Respuesta Seleccionada (${responseValue}):** ${selectedLabel}\n\n`;
+                        }
+                    });
+                    formattedText += "\n"; // Espacio adicional entre dimensiones
+                });
+
+                return formattedText;
+            };
+            // FIN: NUEVA FUNCIÓN PARA FORMATEAR RESPUESTAS
+
 
             const calculateTotalScore = () => {
                 return dimensions.reduce((total, dim) => total + calculateDimensionScore(dim), 0);
@@ -254,12 +278,10 @@
                 setCurrentStep(0);
                 setShowResults(false);
                 setCompanyName('');
-                // INICIO DE CAMBIOS: Reiniciar nuevos estados
                 setUserName('');
                 setUserEmail('');
                 setUserPhone('');
                 setUserRole('');
-                // FIN DE CAMBIOS
                 setSubmissionStatus('idle');
             };
 
@@ -292,7 +314,7 @@
             // FUNCIÓN handleDataCapture MODIFICADA
             const handleDataCapture = async () => {
                 // Su llave real de Web3Forms
-                const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; 
+                const WEB3FORMS_ACCESS_KEY = '69301a21-733e-47f9-ab1d-7c391454628a'; 
 
                 if (!WEB3FORMS_ACCESS_KEY) { 
                     setSubmissionStatus('error');
@@ -308,12 +330,12 @@
                     // CONFIGURACIÓN DE WEB3FORMS:
                     'access_key': WEB3FORMS_ACCESS_KEY,
                     
-                    // DATOS DE CONTACTO (MODIFICADO)
+                    // DATOS DE CONTACTO
                     'Empresa': companyName,
                     'Nombre de Contacto': userName, 
                     'Email de Contacto': userEmail,
                     'Cargo': userRole,
-                    'Teléfono': userPhone, // Teléfono (opcional)
+                    'Teléfono': userPhone, 
                     
                     // PUNTAJES DE RESUMEN
                     'Puntaje General': `${totalScore}/${getMaxScore()}`,
@@ -325,8 +347,8 @@
                     'Score Finanzas': calculateDimensionScore(dimensions.find(d => d.id === 'finanzas')),
                     'Score Cultura': calculateDimensionScore(dimensions.find(d => d.id === 'cultura')),
                     
-                    // DETALLE DE RESPUESTAS COMPLETAS
-                    'Detalle de Respuestas': JSON.stringify(responses), 
+                    // DETALLE DE RESPUESTAS COMPLETAS (USANDO EL NUEVO FORMATO LEGIBLE)
+                    'Detalle de Respuestas': formatResponsesForSubmission(), 
                 };
 
                 try {
@@ -370,14 +392,13 @@
                                         <h1 className="text-4xl font-bold text-gray-800 mb-2">
                                             Resultados de Madurez Digital
                                         </h1>
-                                        {/* INICIO DE CAMBIOS: Mostrar datos de contacto */}
+                                        {/* Mostrar datos de contacto */}
                                         <p className="text-xl text-gray-600">
                                             Empresa: {companyName} | Contacto: {userName} ({userEmail})
                                         </p>
                                         <p className="text-md text-gray-500">
                                             Cargo: {userRole} | Teléfono: {userPhone || 'No proporcionado'}
                                         </p>
-                                        {/* FIN DE CAMBIOS */}
                                     </div>
                                     <button
                                         onClick={resetEvaluation}
@@ -564,9 +585,8 @@
             const currentDimension = dimensions[currentStep];
             const progress = progressPercentage();
             
-            // INICIO DE CAMBIOS: Validar campos obligatorios del paso 0
+            // Validar campos obligatorios del paso 0
             const isInitialFormComplete = companyName.trim() !== '' && userName.trim() !== '' && userEmail.trim() !== '' && userRole.trim() !== '';
-            // FIN DE CAMBIOS
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 p-4">
@@ -753,9 +773,7 @@
 
                             <button
                                 onClick={goToNextStep}
-                                // INICIO DE CAMBIOS: Nueva validación para el paso 0
                                 disabled={!isStepComplete() || (currentStep === 0 && !isInitialFormComplete)}
-                                // FIN DE CAMBIOS
                                 className={`
                                     flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all
                                     ${
