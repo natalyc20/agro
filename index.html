@@ -259,11 +259,12 @@
             // INICIO: Función de captura de datos con el KEY del usuario
             const handleDataCapture = async () => {
                 // ⚠️ ¡ACCIÓN REQUERIDA! REEMPLAZAR ESTA LLAVE CON SU LLAVE REAL DE WEB3FORMS ⚠️
-                const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; 
+                // Una vez que la reemplace, la advertencia desaparecerá y los datos se guardarán.
+                const WEB3FORMS_ACCESS_KEY = ''; // <-- PEGUE SU LLAVE DE WEB3FORMS AQUÍ
 
                 // Advertencia para el usuario si no ha cambiado la llave
-                if (WEB3FORMS_ACCESS_KEY.includes('b143cd22-5cdf-476b-8197-e8fcbb460be7')) {
-                    alert("¡ADVERTENCIA! Debe reemplazar la 'b143cd22-5cdf-476b-8197-e8fcbb460be7' con su llave de Web3Forms (obtenida en https://web3forms.com/) para guardar los datos.");
+                if (WEB3FORMS_ACCESS_KEY === '' || WEB3FORMS_ACCESS_KEY.includes('b143cd22')) {
+                    alert("¡ADVERTENCIA! Debe reemplazar el valor vacío o la llave de prueba con su llave de Web3Forms (obtenida en https://web3forms.com/) para guardar los datos.");
                     setSubmissionStatus('error'); // Mostrar error en el front-end si la llave es de prueba
                     return;
                 }
@@ -299,6 +300,7 @@
                 };
 
                 try {
+                    // Esta línea con 'await' ya no dará SyntaxError una vez que Babel sea eliminado.
                     const response = await fetch('https://api.web3forms.com/submit', {
                         method: 'POST',
                         headers: {
@@ -356,7 +358,7 @@
                 } else if (submissionStatus === 'success') {
                     submissionMessage = <span className="text-green-600 font-bold">✅ Resultados guardados con éxito.</span>;
                 } else if (submissionStatus === 'error') {
-                    submissionMessage = <span className="text-red-600 font-bold">❌ Error al guardar los resultados. Revise la consola y **cambie su llave de Web3Forms**.</span>;
+                    submissionMessage = <span className="text-red-600 font-bold">❌ Error al guardar los resultados. **Revise su llave de Web3Forms**.</span>;
                 }
 
 
