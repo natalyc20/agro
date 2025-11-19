@@ -216,7 +216,7 @@
                 return currentDimension.questions.every(q => responses[q.id] !== undefined);
             };
             
-            // Lógica de validación de campos obligatorios (restaurada)
+            // Lógica de validación de campos obligatorios
             const isStepZeroComplete = companyName.trim() !== '' && personName.trim() !== '';
 
             const progressPercentage = () => {
@@ -258,9 +258,9 @@
                 setSubmissionStatus('idle');
             };
 
-            // Función de captura de datos con el KEY del usuario
+            // INICIO: Función de captura de datos con el KEY del usuario
             const handleDataCapture = async () => {
-                // ⚠️ IMPORTANTE: Debe reemplazar la llave de abajo con su llave REAL de Web3Forms
+                // ⚠️ ¡ACCIÓN REQUERIDA! REEMPLAZAR ESTA LLAVE CON SU LLAVE REAL DE WEB3FORMS ⚠️
                 const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; 
 
                 // Advertencia para el usuario si no ha cambiado la llave
@@ -278,7 +278,7 @@
                     // CONFIGURACIÓN DE WEB3FORMS:
                     'access_key': WEB3FORMS_ACCESS_KEY,
                     
-                    // DATOS DE CONTACTO (Restaurados)
+                    // DATOS DE CONTACTO 
                     'Empresa': companyName,
                     'Nombre': personName,
                     'Cargo': position,
@@ -305,7 +305,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Accept': 'application/json' // Recomendado por Web3Forms para JSON
+                            'Accept': 'application/json' 
                         },
                         body: JSON.stringify(dataToSend)
                     });
@@ -314,7 +314,6 @@
                         setSubmissionStatus('success');
                     } else {
                         setSubmissionStatus('error');
-                        // Web3Forms devuelve una respuesta de texto con detalles en caso de error
                         console.error('Error al enviar los datos:', response.status, await response.text());
                     }
                 } catch (error) {
@@ -322,12 +321,13 @@
                     console.error('Error de red/fetch:', error);
                 }
             };
+            // FIN: Función de captura de datos con el KEY del usuario
 
             // Ejecuta el auto-guardado al presionar el botón final
             const goToNextStep = () => {
-                // Validación adicional para el paso 0 (restaurada)
+                // Validación adicional para el paso 0 
                 if (currentStep === 0 && !isStepZeroComplete) {
-                    alert("Por favor, complete los campos obligatorios para empezar la evaluación.");
+                    alert("Por favor, complete los campos de Nombre de Empresa y Nombre de Contacto para empezar la evaluación.");
                     return;
                 }
                 
@@ -580,7 +580,7 @@
                                 />
                             </div>
 
-                            {/* Formulario de Información de Contacto (Step 0) - Restaurado */}
+                            {/* Formulario de Información de Contacto (Step 0) */}
                             {currentStep === 0 && Object.keys(responses).length === 0 && (
                                 <div className="mb-6 p-6 bg-blue-50 rounded-xl">
                                     <h3 className="text-xl font-bold text-gray-800 mb-4">Información de Contacto</h3>
