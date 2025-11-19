@@ -23,11 +23,6 @@
         const Chart = window.Chart; // Acceso global a Chart.js
 
         // ====================================================================
-        // I. CONFIGURACIÓN DE CAPTURA DE DATOS (IMPORTANTE: CAMBIAR ESTO)
-        // ====================================================================
-        // NOTA: La URL de envío y la llave de acceso se definen dentro de handleDataCapture.
-        
-        // ====================================================================
         // II. COMPONENTES DE GRÁFICOS (Chart.js)
         // ====================================================================
         
@@ -166,6 +161,7 @@
         const MadurezDigitalAgro = () => {
             const [currentStep, setCurrentStep] = useState(0);
             const [showResults, setShowResults] = useState(false);
+            // Estado restaurado para todos los campos de contacto
             const [companyName, setCompanyName] = useState('');
             const [personName, setPersonName] = useState('');
             const [position, setPosition] = useState('');
@@ -220,6 +216,7 @@
                 return currentDimension.questions.every(q => responses[q.id] !== undefined);
             };
             
+            // Lógica de validación de campos obligatorios (restaurada)
             const isStepZeroComplete = companyName.trim() !== '' && personName.trim() !== '';
 
             const progressPercentage = () => {
@@ -261,11 +258,15 @@
                 setSubmissionStatus('idle');
             };
 
+            // Función de captura de datos con el KEY del usuario
             const handleDataCapture = async () => {
-                const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; // <--- ⚠️ REEMPLAZAR ESTA LLAVE ⚠️
+                // ⚠️ IMPORTANTE: Debe reemplazar la llave de abajo con su llave REAL de Web3Forms
+                const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; 
 
+                // Advertencia para el usuario si no ha cambiado la llave
                 if (WEB3FORMS_ACCESS_KEY.includes('b143cd22-5cdf-476b-8197-e8fcbb460be7')) {
                     alert("¡ADVERTENCIA! Debe reemplazar la 'b143cd22-5cdf-476b-8197-e8fcbb460be7' con su llave de Web3Forms (obtenida en https://web3forms.com/) para guardar los datos.");
+                    setSubmissionStatus('error'); // Mostrar error en el front-end si la llave es de prueba
                     return;
                 }
                 
@@ -277,7 +278,7 @@
                     // CONFIGURACIÓN DE WEB3FORMS:
                     'access_key': WEB3FORMS_ACCESS_KEY,
                     
-                    // DATOS DE CONTACTO
+                    // DATOS DE CONTACTO (Restaurados)
                     'Empresa': companyName,
                     'Nombre': personName,
                     'Cargo': position,
@@ -322,8 +323,9 @@
                 }
             };
 
+            // Ejecuta el auto-guardado al presionar el botón final
             const goToNextStep = () => {
-                // Validación adicional para el paso 0
+                // Validación adicional para el paso 0 (restaurada)
                 if (currentStep === 0 && !isStepZeroComplete) {
                     alert("Por favor, complete los campos obligatorios para empezar la evaluación.");
                     return;
@@ -356,7 +358,7 @@
                 } else if (submissionStatus === 'success') {
                     submissionMessage = <span className="text-green-600 font-bold">✅ Resultados guardados con éxito.</span>;
                 } else if (submissionStatus === 'error') {
-                    submissionMessage = <span className="text-red-600 font-bold">❌ Error al guardar los resultados. Revise la consola.</span>;
+                    submissionMessage = <span className="text-red-600 font-bold">❌ Error al guardar los resultados. Revise la consola y **cambie su llave de Web3Forms**.</span>;
                 }
 
 
@@ -541,7 +543,7 @@
                         </div>
                         <div className="text-center mt-4">
                             <p className="text-gray-500 text-sm">
-                                Para guardar datos permanentemente, debe configurar un servicio (Formspree/Webhook) y reemplazar la llave de acceso.
+                                Para que el **guardado automático** funcione, debe **reemplazar la llave** en el código.
                             </p>
                         </div>
                     </div>
@@ -578,7 +580,7 @@
                                 />
                             </div>
 
-                            {/* Formulario de Información de Contacto (Step 0) */}
+                            {/* Formulario de Información de Contacto (Step 0) - Restaurado */}
                             {currentStep === 0 && Object.keys(responses).length === 0 && (
                                 <div className="mb-6 p-6 bg-blue-50 rounded-xl">
                                     <h3 className="text-xl font-bold text-gray-800 mb-4">Información de Contacto</h3>
@@ -727,6 +729,7 @@
 
                             <button
                                 onClick={goToNextStep}
+                                // Validación de paso 0 restaurada
                                 disabled={!isStepComplete() || (currentStep === 0 && !isStepZeroComplete)}
                                 className={`
                                     flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all
