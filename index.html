@@ -7,10 +7,10 @@
     
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script> 
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -18,10 +18,15 @@
 <body class="p-0 m-0">
     <div id="root"></div>
 
-    <script type="text/babel"> 
+    <script type="text/babel">
         const { useState, useRef, useEffect, useCallback } = React;
         const Chart = window.Chart; // Acceso global a Chart.js
 
+        // ====================================================================
+        // I. CONFIGURACIÓN DE CAPTURA DE DATOS
+        // ====================================================================
+        // La llave se usa en handleDataCapture().
+        
         // ====================================================================
         // II. COMPONENTES DE GRÁFICOS (Chart.js)
         // ====================================================================
@@ -161,12 +166,7 @@
         const MadurezDigitalAgro = () => {
             const [currentStep, setCurrentStep] = useState(0);
             const [showResults, setShowResults] = useState(false);
-            // Estado restaurado para todos los campos de contacto
             const [companyName, setCompanyName] = useState('');
-            const [personName, setPersonName] = useState('');
-            const [position, setPosition] = useState('');
-            const [email, setEmail] = useState('');
-            const [phone, setPhone] = useState('');
             const [responses, setResponses] = useState({});
             const [submissionStatus, setSubmissionStatus] = useState('idle'); // idle | loading | success | error
 
@@ -212,16 +212,9 @@
             };
 
             const isStepComplete = () => {
-                // Paso 0 es el formulario de contacto, el resto son dimensiones de preguntas.
-                if (currentStep === 0) {
-                    return companyName.trim() !== '' && personName.trim() !== '';
-                }
-                const currentDimension = dimensions[currentStep - 1]; // Ajuste de índice para los pasos de preguntas
+                const currentDimension = dimensions[currentStep];
                 return currentDimension.questions.every(q => responses[q.id] !== undefined);
             };
-            
-            // Lógica de validación de campos obligatorios
-            const isContactStepComplete = companyName.trim() !== '' && personName.trim() !== '';
 
             const progressPercentage = () => {
                 const totalQuestions = dimensions.reduce((sum, dim) => sum + dim.questions.length, 0);
@@ -255,23 +248,38 @@
                 setCurrentStep(0);
                 setShowResults(false);
                 setCompanyName('');
-                setPersonName('');
-                setPosition('');
-                setEmail('');
-                setPhone('');
                 setSubmissionStatus('idle');
             };
 
-            // INICIO: Función de captura de datos con el KEY del usuario
-            const handleDataCapture = async () => {
-                // ⚠️ ¡ACCIÓN REQUERIDA! REEMPLAZAR ESTA LLAVE CON SU LLAVE REAL DE WEB3FORMS ⚠️
-                // Una vez que la reemplace, la advertencia desaparecerá y los datos se guardarán.
-                const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; // <-- PEGUE SU LLAVE DE WEB3FORMS AQUÍ
+            // INICIO: LÓGICA DE NAVEGACIÓN CORREGIDA (GUARDADO AUTOMÁTICO)
+            const goToNextStep = () => {
+                if (currentStep < dimensions.length - 1) {
+                    setCurrentStep(currentStep + 1);
+                } else if (currentStep === dimensions.length - 1) {
+                    // *** CAMBIO CLAVE: Guardado de datos automático ***
+                    handleDataCapture(); 
+                    
+                    // Muestra la pantalla de resultados
+                    setShowResults(true);
+                }
+            };
+            // FIN: LÓGICA DE NAVEGACIÓN CORREGIDA
 
-                // Advertencia para el usuario si no ha cambiado la llave
-                if (WEB3FORMS_ACCESS_KEY === '' || WEB3FORMS_ACCESS_KEY.includes('b143cd22')) {
-                    alert("¡ADVERTENCIA! Debe reemplazar el valor vacío o la llave de prueba con su llave de Web3Forms (obtenida en https://web3forms.com/) para guardar los datos.");
-                    setSubmissionStatus('error'); // Mostrar error en el front-end si la llave es de prueba
+            const goToPrevStep = () => {
+                if (currentStep > 0) {
+                    setCurrentStep(currentStep - 1);
+                }
+            };
+
+            // INICIO: FUNCIÓN handleDataCapture CORREGIDA (SIN ALERTA)
+            const handleDataCapture = async () => {
+                // Su llave real de Web3Forms
+                const WEB3FORMS_ACCESS_KEY = '69301a21-733e-47f9-ab1d-7c391454628a'; 
+
+                // Si la llave está vacía, marcamos error, pero NO disparamos un alert()
+                if (!WEB3FORMS_ACCESS_KEY) { 
+                    setSubmissionStatus('error');
+                    console.error("ERROR: La llave de acceso de Web3Forms está vacía. No se guardarán los datos.");
                     return;
                 }
                 
@@ -283,13 +291,8 @@
                     // CONFIGURACIÓN DE WEB3FORMS:
                     'access_key': WEB3FORMS_ACCESS_KEY,
                     
-                    // DATOS DE CONTACTO 
+                    // DATOS DE CONTACTO
                     'Empresa': companyName,
-                    'Nombre': personName,
-                    'Cargo': position,
-                    'Email': email,
-                    'Teléfono': phone,
-                    'Fecha': new Date().toLocaleString('es-ES'), // Formato legible de fecha/hora
                     
                     // PUNTAJES DE RESUMEN
                     'Puntaje General': `${totalScore}/${getMaxScore()}`,
@@ -306,7 +309,6 @@
                 };
 
                 try {
-                    // Se usa await dentro de esta función async
                     const response = await fetch('https://api.web3forms.com/submit', {
                         method: 'POST',
                         headers: {
@@ -327,57 +329,7 @@
                     console.error('Error de red/fetch:', error);
                 }
             };
-            // FIN: Función de captura de datos con el KEY del usuario
-
-            // Lógica para avanzar al siguiente paso
-            const goToNextStep = () => {
-                // Validación para el paso de contacto (Paso 0)
-                if (currentStep === 0 && !isContactStepComplete) {
-                    alert("Por favor, complete los campos de Nombre de Empresa y Nombre de Contacto para empezar la evaluación.");
-                    return;
-                }
-                
-                // Validación para los pasos de preguntas (Pasos 1 a 6)
-                if (currentStep > 0 && currentStep <= dimensions.length && !isStepComplete()) {
-                    alert("Por favor, responda todas las preguntas de esta sección antes de continuar.");
-                    return;
-                }
-
-                // Si estamos en la última dimensión y es el último botón
-                if (currentStep === dimensions.length) { 
-                    handleDataCapture();
-                    setShowResults(true);
-                } else {
-                    // Avanzamos el paso (de 0 a 1, de 1 a 2, etc.)
-                    setCurrentStep(currentStep + 1); 
-                }
-            };
-
-            const goToPrevStep = () => {
-                if (currentStep > 0) {
-                    setCurrentStep(currentStep - 1);
-                }
-            };
-
-            // --- Componentes Reutilizables ---
-            const InputField = ({ label, id, value, onChange, type = 'text', required = false }) => (
-                <div className="mb-4">
-                    <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-                        {label} {required && <span className="text-red-500">*</span>}
-                    </label>
-                    <input
-                        type={type}
-                        id={id}
-                        value={value}
-                        onChange={(e) => onChange(e.target.value)}
-                        required={required}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150"
-                        placeholder={label}
-                    />
-                </div>
-            );
-
-            // --- Vistas de la Aplicación ---
+            // FIN: FUNCIÓN handleDataCapture CORREGIDA
 
             if (showResults) {
                 const totalScore = calculateTotalScore();
@@ -385,14 +337,8 @@
                 const radarData = getRadarData();
                 const barData = getBarData();
 
+                // submissionMessage ya no se usa, el estado se lee directamente en el bloque de botones.
                 let submissionMessage = null;
-                if (submissionStatus === 'loading') {
-                    submissionMessage = <span className="text-blue-600 font-bold">...Guardando resultados automáticamente...</span>;
-                } else if (submissionStatus === 'success') {
-                    submissionMessage = <span className="text-green-600 font-bold">✅ Resultados guardados con éxito.</span>;
-                } else if (submissionStatus === 'error') {
-                    submissionMessage = <span className="text-red-600 font-bold">❌ Error al guardar los resultados. **Revise su llave de Web3Forms**.</span>;
-                }
 
 
                 return (
@@ -405,16 +351,11 @@
                                         <h1 className="text-4xl font-bold text-gray-800 mb-2">
                                             Resultados de Madurez Digital
                                         </h1>
-                                        <div className="text-lg text-gray-600 space-y-1">
-                                            <p><strong className="text-gray-800">Empresa:</strong> {companyName}</p>
-                                            <p><strong className="text-gray-800">Contacto:</strong> {personName} (<span className="italic">{position || 'Sin cargo especificado'}</span>)</p>
-                                            <p><strong className="text-gray-800">Email:</strong> {email || 'N/A'} | <strong className="text-gray-800">Teléfono:</strong> {phone || 'N/A'}</p>
-                                        </div>
+                                        <p className="text-xl text-gray-600">Empresa: {companyName}</p>
                                     </div>
-                                    {/* Mostrar botón de Nueva Evaluación solo en modo web */}
                                     <button
                                         onClick={resetEvaluation}
-                                        className="hidden print:hidden lg:flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold"
+                                        className="hidden print:block flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                                     >
                                         🔄 Nueva Evaluación
                                     </button>
@@ -445,247 +386,270 @@
                                 </div>
 
                                 {/* Priority Alert */}
-                                <div className="bg-yellow-50 border-l-4 border-yellow-500 text-yellow-800 p-4 mb-6 rounded-lg shadow-md">
-                                    <h3 className="text-xl font-bold mb-2">Prioridad de Acción</h3>
-                                    <p className="font-semibold">{overallLevel.priority}</p>
+                                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-lg mb-6">
+                                    <div className="flex items-start">
+                                        <span style={{color: '#fbbf24', fontSize: '1.5rem', marginRight: '0.75rem'}}>⚠️</span>
+                                        <div>
+                                            <p className="font-bold text-yellow-800 text-lg">{overallLevel.priority}</p>
+                                            <ul className="mt-2 space-y-1">
+                                                {overallLevel.actions.map((action, idx) => (
+                                                    <li key={idx} className="text-yellow-700 flex items-center">
+                                                        <span style={{color: '#10b981', marginRight: '0.5rem'}}>✓</span>
+                                                        {action}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </div>
-
-                                {/* Submission Status */}
-                                <div className="p-4 bg-gray-100 rounded-lg text-center text-sm">
-                                    {submissionMessage}
-                                </div>
-
                             </div>
-                            
-                            {/* Gráficos y Análisis por Dimensión */}
+
+                            {/* Charts Section */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                                {/* Gráfico Radar */}
+                                {/* Radar Chart */}
                                 <div className="bg-white rounded-2xl shadow-xl p-6">
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Desempeño por Dimensión (Radar)</h2>
+                                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Perfil de Madurez</h2>
                                     <RadarChartDisplay 
                                         data={radarData} 
-                                        colors={{ hex: overallLevel.color, rgb: overallLevel.color.replace('#', '1,1,1') }} 
+                                        colors={{ hex: '#10b981', rgb: '16, 185, 129' }} 
                                     />
                                 </div>
 
-                                {/* Gráfico de Barras */}
+                                {/* Bar Chart */}
                                 <div className="bg-white rounded-2xl shadow-xl p-6">
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">Nivel de Madurez por Área</h2>
-                                    <BarChartDisplay data={barData} />
+                                    <h2 className="text-2xl font-bold text-gray-800 mb-4">Puntaje por Dimensión</h2>
+                                    <BarChartDisplay 
+                                        data={barData} 
+                                    />
                                 </div>
                             </div>
 
-                            {/* Recomendaciones Detalladas */}
-                            <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-                                <h2 className="text-3xl font-bold text-gray-800 mb-6 border-b pb-3">Hoja de Ruta Digital Sugerida</h2>
-                                <p className="text-lg text-gray-700 mb-6">Basado en su nivel **{overallLevel.level}**, estas son las **próximas acciones clave** para avanzar en su madurez digital:</p>
-                                
-                                <ul className="space-y-4">
-                                    {overallLevel.actions.map((action, index) => (
-                                        <li key={index} className="flex items-start bg-blue-50 p-4 rounded-lg shadow-sm">
-                                            <span className="text-2xl mr-3 text-blue-600">🚀</span>
-                                            <p className="text-gray-700 font-medium">{action}</p>
-                                        </li>
-                                    ))}
-                                </ul>
-
-                                <h3 className="text-2xl font-bold text-gray-800 mt-8 mb-4">Análisis Detallado de Dimensiones</h3>
-                                <div className="space-y-6">
-                                    {barData.map(dim => {
-                                        const dimension = dimensions.find(d => d.name === dim.name.substring(3)); // Quitar el emoji
-                                        const scorePercent = Math.round((dim.score / 25) * 100);
-                                        const levelInfo = getDimensionLevel(dim.score);
-                                        
-                                        let recommendationText = '';
-                                        if (levelInfo.level === 1) recommendationText = `**Prioridad Alta:** Necesita digitalizar sus procesos en ${dimension.name} para obtener control y eficiencia.`;
-                                        if (levelInfo.level === 2) recommendationText = `**Foco:** Debe consolidar las herramientas existentes y buscar soluciones específicas de gestión para ${dimension.name}.`;
-                                        if (levelInfo.level === 3) recommendationText = `**Optimización:** Utilice los datos que ya recolecta para análisis y automatización de procesos clave en ${dimension.name}.`;
-                                        if (levelInfo.level === 4) recommendationText = `**Inversión en Innovación:** Explore el uso de IA y telemetría para la toma de decisiones predictivas en ${dimension.name}.`;
-                                        if (levelInfo.level === 5) recommendationText = `**Liderazgo:** Mantenga la inversión y explore nuevas tecnologías. Puede servir de mentor a otras áreas o empresas.`;
-
+                            {/* Dimension Details */}
+                            <div className="bg-white rounded-2xl shadow-xl p-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                                    📈 Análisis Detallado por Dimensión
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {dimensions.map((dim) => {
+                                        const score = calculateDimensionScore(dim);
+                                        const level = getDimensionLevel(score);
                                         return (
-                                            <div key={dim.name} className="border-b pb-4">
-                                                <div className="flex justify-between items-center mb-2">
-                                                    <h4 className="text-xl font-semibold text-gray-700">{dim.name} ({levelInfo.label})</h4>
-                                                    <span className="text-2xl font-bold" style={{ color: dim.color }}>{dim.score}/25</span>
+                                            <div key={dim.id} className="border-2 rounded-xl p-6" style={{ borderColor: dim.color }}>
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <span className="text-4xl">{dim.icon}</span>
+                                                    <span className="text-3xl font-bold" style={{ color: dim.color }}>
+                                                        {score}/25
+                                                    </span>
                                                 </div>
-                                                <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-                                                    <div className="h-2.5 rounded-full" style={{ width: `${scorePercent}%`, backgroundColor: dim.color }}></div>
+                                                <h3 className="font-bold text-lg text-gray-800 mb-2">{dim.name}</h3>
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-full bg-gray-200 rounded-full h-3">
+                                                        <div
+                                                            className="h-3 rounded-full transition-all"
+                                                            style={{
+                                                                width: `${(score / 25) * 100}%`,
+                                                                backgroundColor: level.color
+                                                            }}
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <p className="text-gray-600 italic mt-2" dangerouslySetInnerHTML={{ __html: recommendationText }}></p>
+                                                <p className="text-sm font-semibold" style={{ color: level.color }}>
+                                                    Nivel {level.level}: {level.label}
+                                                </p>
                                             </div>
                                         );
                                     })}
                                 </div>
                             </div>
-                            
-                            {/* Footer/Botones de acción */}
-                            <div className="flex justify-between bg-white rounded-2xl shadow-xl p-6 sticky bottom-0 z-10">
-                                <button
-                                    onClick={() => window.print()}
-                                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-bold"
-                                >
-                                    🖨️ Imprimir/Guardar PDF
-                                </button>
-                                <button
-                                    onClick={resetEvaluation}
-                                    className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-bold"
-                                >
-                                    🔄 Empezar de Nuevo
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
 
-
-            // --- VISTA DE FORMULARIO DE EVALUACIÓN (Paso a Paso) ---
-
-            // Ajuste para el paso actual: 0 = Contacto, 1 a 6 = Dimensiones
-            const currentDimensionIndex = currentStep - 1;
-            const currentDimension = dimensions[currentDimensionIndex];
-
-            // Renderizar Paso 0: Formulario de Contacto
-            if (currentStep === 0) {
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-pink-50 flex items-center justify-center p-4">
-                        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-8 transform transition-all duration-500">
-                            <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
-                                🚀 Evaluación de Madurez Digital Agropecuaria
-                            </h1>
-                            <p className="text-gray-600 mb-6 border-b pb-4">
-                                Ingrese sus datos para personalizar su reporte.
-                            </p>
-
-                            <InputField 
-                                label="Nombre de la Empresa/Finca" 
-                                id="companyName" 
-                                value={companyName} 
-                                onChange={setCompanyName} 
-                                required={true}
-                            />
-                            <InputField 
-                                label="Nombre del Contacto" 
-                                id="personName" 
-                                value={personName} 
-                                onChange={setPersonName} 
-                                required={true}
-                            />
-                            <InputField 
-                                label="Cargo o Rol" 
-                                id="position" 
-                                value={position} 
-                                onChange={setPosition}
-                            />
-                            <InputField 
-                                label="Correo Electrónico" 
-                                id="email" 
-                                value={email} 
-                                onChange={setEmail} 
-                                type="email"
-                            />
-                            <InputField 
-                                label="Teléfono" 
-                                id="phone" 
-                                value={phone} 
-                                onChange={setPhone} 
-                                type="tel"
-                            />
-
-                            <div className="mt-8 flex justify-end">
-                                <button
-                                    onClick={goToNextStep}
-                                    disabled={!isContactStepComplete}
-                                    className={`
-                                        flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all
-                                        ${!isContactStepComplete 
-                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                            : 'bg-green-500 text-white hover:bg-green-600'
-                                        }
-                                    `}
-                                >
-                                    Comenzar Evaluación →
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
-
-            // Renderizar Pasos de Preguntas (1 a 6)
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4 pt-10">
-                    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-8">
-                        
-                        {/* Indicador de Progreso */}
-                        <div className="mb-8">
-                            <h2 className="text-lg font-medium text-gray-500 mb-2">
-                                Progreso General: {Math.round(progressPercentage())}%
-                            </h2>
-                            <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                <div 
-                                    className="bg-green-500 h-2.5 rounded-full transition-all duration-500" 
-                                    style={{ width: `${progressPercentage()}%` }}
-                                ></div>
-                            </div>
-                        </div>
-
-                        {/* Encabezado del Paso Actual */}
-                        <div className="mb-8 border-b pb-4">
-                            <p className="text-xl font-bold text-blue-600 mb-1">
-                                Paso {currentStep} de {dimensions.length}:
-                            </p>
-                            <h1 className="text-4xl font-extrabold text-gray-900 flex items-center gap-3">
-                                <span className="text-5xl">{currentDimension.icon}</span>
-                                {currentDimension.name}
-                            </h1>
-                            <p className="text-gray-600 mt-2">
-                                Seleccione la opción que mejor describa el estado actual de su empresa en esta dimensión.
-                            </p>
-                        </div>
-                        
-                        {/* Preguntas de la Dimensión */}
-                        <div className="space-y-8">
-                            {currentDimension.questions.map((q, index) => (
-                                <div key={q.id} className="border-b pb-6 last:border-b-0">
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                                        {index + 1}. {q.text}
-                                    </h3>
-                                    <div className="space-y-3">
-                                        {q.options.map(opt => {
-                                            const isSelected = responses[q.id] === opt.value;
+                            {/* Recommendations */}
+                            <div className="bg-white rounded-2xl shadow-xl p-8 mt-6">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                                    🏆 Próximos Pasos Recomendados
+                                </h2>
+                                <div className="space-y-4">
+                                    {dimensions
+                                        .map(dim => ({
+                                            ...dim,
+                                            score: calculateDimensionScore(dim)
+                                        }))
+                                        .sort((a, b) => a.score - b.score)
+                                        .slice(0, 3)
+                                        .map((dim, idx) => {
+                                            const level = getDimensionLevel(dim.score);
                                             return (
+                                                <div key={dim.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg">
+                                                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                                                        {idx + 1}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h3 className="font-bold text-lg text-gray-800 mb-1">
+                                                            {dim.icon} Mejorar {dim.name}
+                                                        </h3>
+                                                        <p className="text-gray-600 mb-2">
+                                                            Actualmente en <strong>{level.label}</strong> con {dim.score}/25 puntos
+                                                        </p>
+                                                        <p className="text-sm text-gray-500">
+                                                            Esta es una de sus áreas con mayor oportunidad de mejora. Priorice acciones aquí para obtener resultados rápidos.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* INICIO: Bloque de botones MODIFICADO (Elimina Guardar Manual) */}
+                        <div className="mt-8 flex justify-center flex-col md:flex-row gap-4 p-4 bg-white rounded-xl shadow-lg print:hidden">
+                            
+                            {/* Estado del Guardado (automático) - Sustituye al botón manual */}
+                            <div className="flex items-center justify-center flex-1">
+                                <div className={`px-4 py-3 rounded-xl font-bold text-lg text-center
+                                    ${submissionStatus === 'success' ? 'bg-green-100 text-green-700' : 
+                                      submissionStatus === 'loading' ? 'bg-blue-100 text-blue-700' : 
+                                      submissionStatus === 'error' ? 'bg-red-100 text-red-700' : 'text-gray-600'}`}>
+                                    {submissionStatus === 'loading' && '🔄 Enviando resultados automáticamente...'}
+                                    {submissionStatus === 'success' && '✅ Resultados guardados con éxito.'}
+                                    {submissionStatus === 'error' && '❌ Error al guardar. (Revise su llave de Web3Forms).'}
+                                    {submissionStatus === 'idle' && 'Generando reporte...'}
+                                </div>
+                            </div>
+                            
+                            {/* Botón Descargar PDF (Se mantiene) */}
+                            <button
+                                onClick={() => window.print()}
+                                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-purple-600 text-white text-lg font-bold rounded-xl hover:bg-purple-700 transition-all shadow-lg flex-shrink-0"
+                            >
+                                🖨️ Descargar/Imprimir Reporte
+                            </button>
+                        </div>
+                        <div className="text-center mt-4">
+                            <p className="text-gray-500 text-sm">
+                                La captura de datos es automática al hacer clic en 'Ver Resultados'.
+                            </p>
+                        </div>
+                        {/* FIN: Bloque de botones MODIFICADO */}
+                    </div>
+                );
+            }
+
+            // Evaluation Form
+            const currentDimension = dimensions[currentStep];
+            const progress = progressPercentage();
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 p-4">
+                    <div className="max-w-4xl mx-auto">
+                        {/* Header */}
+                        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                                        🌾 Evaluación de Madurez Digital
+                                    </h1>
+                                    <p className="text-lg text-gray-600">Sector Agropecuario</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm text-gray-500">Progreso General</p>
+                                    <p className="text-3xl font-bold text-green-600">{Math.round(progress)}%</p>
+                                </div>
+                            </div>
+                            
+                            {/* Progress Bar */}
+                            <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
+                                <div
+                                    className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+
+                            {/* Company Name Input */}
+                            {currentStep === 0 && Object.keys(responses).length === 0 && (
+                                <div className="mb-6 p-6 bg-blue-50 rounded-xl">
+                                    <label className="block text-lg font-semibold text-gray-700 mb-3">
+                                        Nombre de su empresa:
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={companyName}
+                                        onChange={(e) => setCompanyName(e.target.value)}
+                                        placeholder="Ej: Agrícola San José"
+                                        className="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Dimension Progress */}
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                                    <span className="text-4xl">{currentDimension.icon}</span>
+                                    {currentDimension.name}
+                                </h2>
+                                <span className="text-lg font-semibold text-gray-600">
+                                    Dimensión {currentStep + 1} de {dimensions.length}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Questions */}
+                        <div className="space-y-6">
+                            {currentDimension.questions.map((question, qIdx) => {
+                                const isAnswered = responses[question.id] !== undefined;
+                                return (
+                                    <div
+                                        key={question.id}
+                                        className={`bg-white rounded-xl shadow-lg p-6 transition-all ${
+                                            isAnswered ? 'border-2 border-green-500' : 'border-2 border-transparent'
+                                        }`}
+                                    >
+                                        <div className="flex items-start gap-4 mb-4">
+                                            <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                                                {qIdx + 1}
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-xl font-semibold text-gray-800">{question.text}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Options */}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {question.options.map((option) => (
                                                 <button
-                                                    key={opt.value}
-                                                    onClick={() => handleResponse(q.id, opt.value)}
+                                                    key={option.value}
+                                                    onClick={() => handleResponse(question.id, option.value)}
                                                     className={`
-                                                        w-full text-left p-4 rounded-lg border-2 transition-all duration-200
-                                                        ${isSelected 
-                                                            ? 'border-green-500 bg-green-50 text-green-800 shadow-md font-medium'
-                                                            : 'border-gray-200 bg-white hover:border-blue-300 text-gray-700'
+                                                        p-4 rounded-lg text-left transition-all duration-200 border-2
+                                                        ${
+                                                            responses[question.id] === option.value
+                                                                ? 'bg-green-100 border-green-600 text-green-800 font-bold shadow-md'
+                                                                : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
                                                         }
                                                     `}
                                                 >
-                                                    {opt.label}
+                                                    <span className="font-mono text-sm mr-2" style={{ color: currentDimension.color }}>
+                                                        {option.value}
+                                                    </span>
+                                                    {option.label}
                                                 </button>
-                                            );
-                                        })}
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
 
-                        {/* Navegación */}
-                        <div className="mt-10 pt-6 border-t flex justify-between">
+                        {/* Navigation Buttons */}
+                        <div className="mt-8 flex justify-between p-4 bg-white rounded-xl shadow-lg">
                             <button
                                 onClick={goToPrevStep}
-                                disabled={currentStep <= 1} // No permite ir atrás desde el Paso 1 (a contacto)
+                                disabled={currentStep === 0}
                                 className={`
                                     flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all
-                                    ${currentStep <= 1 
-                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                                    ${
+                                        currentStep === 0
+                                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                            : 'bg-blue-500 text-white hover:bg-blue-600'
                                     }
                                 `}
                             >
@@ -694,20 +658,19 @@
 
                             <button
                                 onClick={goToNextStep}
-                                // Aquí se revisa si todas las preguntas del paso de preguntas están respondidas.
-                                disabled={!isStepComplete()} 
+                                disabled={!isStepComplete() || (currentStep === 0 && companyName.trim() === '')}
                                 className={`
                                     flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all
                                     ${
-                                        !isStepComplete() 
+                                        !isStepComplete() || (currentStep === 0 && companyName.trim() === '')
                                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                            : currentStep < dimensions.length 
+                                            : currentStep < dimensions.length - 1
                                             ? 'bg-green-500 text-white hover:bg-green-600'
-                                            : 'bg-purple-600 text-white hover:bg-purple-700' // Botón de Ver Resultados
+                                            : 'bg-purple-600 text-white hover:bg-purple-700'
                                     }
                                 `}
                             >
-                                {currentStep < dimensions.length ? (
+                                {currentStep < dimensions.length - 1 ? (
                                     <>
                                         Siguiente →
                                     </>
