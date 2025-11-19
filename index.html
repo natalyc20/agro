@@ -258,21 +258,38 @@
                 setSubmissionStatus('idle');
             };
 
+
+                       const handleDataCapture = async () => {
+    // ¡Su llave real está aquí!
+    const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; 
+    
+    // Si la llave de Web3Forms es una cadena vacía, detenemos el envío (solo por precaución)
+    if (!WEB3FORMS_ACCESS_KEY) { 
+        alert("¡ADVERTENCIA! La llave de acceso está vacía. No se guardarán los datos.");
+        return;
+    }
+
+    setSubmissionStatus('loading');
+    const totalScore = calculateTotalScore();
+    const overallLevel = getOverallLevel(totalScore);
+
+                           
             // INICIO: Función de captura de datos con el KEY del usuario
-            const handleDataCapture = async () => {
+          //  const handleDataCapture = async () => {
+                
                 // ⚠️ ¡ACCIÓN REQUERIDA! REEMPLAZAR ESTA LLAVE CON SU LLAVE REAL DE WEB3FORMS ⚠️
-                const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; 
+             //   const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; 
 
                 // Advertencia para el usuario si no ha cambiado la llave
-                if (WEB3FORMS_ACCESS_KEY.includes('b143cd22-5cdf-476b-8197-e8fcbb460be7')) {
-                    alert("¡ADVERTENCIA! Debe reemplazar la 'b143cd22-5cdf-476b-8197-e8fcbb460be7' con su llave de Web3Forms (obtenida en https://web3forms.com/) para guardar los datos.");
-                    setSubmissionStatus('error'); // Mostrar error en el front-end si la llave es de prueba
+           //     if (WEB3FORMS_ACCESS_KEY.includes('b143cd22-5cdf-476b-8197-e8fcbb460be7')) {
+             //       alert("¡ADVERTENCIA! Debe reemplazar la 'b143cd22-5cdf-476b-8197-e8fcbb460be7' con su llave de Web3Forms (obtenida en https://web3forms.com/) para guardar los datos.");
+             //       setSubmissionStatus('error'); // Mostrar error en el front-end si la llave es de prueba
                     return;
                 }
                 
-                setSubmissionStatus('loading');
-                const totalScore = calculateTotalScore();
-                const overallLevel = getOverallLevel(totalScore);
+            //    setSubmissionStatus('loading');
+            //    const totalScore = calculateTotalScore();
+             //   const overallLevel = getOverallLevel(totalScore);
 
                 const dataToSend = {
                     // CONFIGURACIÓN DE WEB3FORMS:
