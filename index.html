@@ -23,9 +23,9 @@
         const Chart = window.Chart; // Acceso global a Chart.js
 
         // ====================================================================
-        // I. CONFIGURACIÓN DE CAPTURA DE DATOS
+        // I. CONFIGURACIÓN DE CAPTURA DE DATOS (IMPORTANTE: CAMBIAR ESTO)
         // ====================================================================
-        // La llave se usa en handleDataCapture().
+        // NOTA: La URL de envío y la llave de acceso se definen dentro de handleDataCapture.
         
         // ====================================================================
         // II. COMPONENTES DE GRÁFICOS (Chart.js)
@@ -167,6 +167,12 @@
             const [currentStep, setCurrentStep] = useState(0);
             const [showResults, setShowResults] = useState(false);
             const [companyName, setCompanyName] = useState('');
+            // AÑADIDO: Nuevos estados para la información de contacto
+            const [personName, setPersonName] = useState('');
+            const [position, setPosition] = useState('');
+            const [email, setEmail] = useState('');
+            const [phone, setPhone] = useState('');
+            // FIN AÑADIDO
             const [responses, setResponses] = useState({});
             const [submissionStatus, setSubmissionStatus] = useState('idle'); // idle | loading | success | error
 
@@ -215,6 +221,10 @@
                 const currentDimension = dimensions[currentStep];
                 return currentDimension.questions.every(q => responses[q.id] !== undefined);
             };
+            
+            // NUEVO: Validación para los campos de contacto obligatorios en el paso 0
+            const isStepZeroComplete = companyName.trim() !== '' && personName.trim() !== '';
+            // FIN NUEVO
 
             const progressPercentage = () => {
                 const totalQuestions = dimensions.reduce((sum, dim) => sum + dim.questions.length, 0);
@@ -248,22 +258,28 @@
                 setCurrentStep(0);
                 setShowResults(false);
                 setCompanyName('');
+                // AÑADIDO: Limpiar nuevos estados de contacto
+                setPersonName('');
+                setPosition('');
+                setEmail('');
+                setPhone('');
+                // FIN AÑADIDO
                 setSubmissionStatus('idle');
             };
 
-            // INICIO: LÓGICA DE NAVEGACIÓN CORREGIDA (GUARDADO AUTOMÁTICO)
             const goToNextStep = () => {
+                // Validación adicional para el paso 0
+                if (currentStep === 0 && !isStepZeroComplete) {
+                    alert("Por favor, complete los campos obligatorios para empezar la evaluación.");
+                    return;
+                }
+                
                 if (currentStep < dimensions.length - 1) {
                     setCurrentStep(currentStep + 1);
                 } else if (currentStep === dimensions.length - 1) {
-                    // *** CAMBIO CLAVE: Guardado de datos automático ***
-                    handleDataCapture(); 
-                    
-                    // Muestra la pantalla de resultados
                     setShowResults(true);
                 }
             };
-            // FIN: LÓGICA DE NAVEGACIÓN CORREGIDA
 
             const goToPrevStep = () => {
                 if (currentStep > 0) {
@@ -271,15 +287,12 @@
                 }
             };
 
-            // INICIO: FUNCIÓN handleDataCapture CORREGIDA (SIN ALERTA)
+            // NUEVA FUNCIÓN PARA CAPTURA DE DATOS (WEB3FORMS)
             const handleDataCapture = async () => {
-                // Su llave real de Web3Forms
-                const WEB3FORMS_ACCESS_KEY = '69301a21-733e-47f9-ab1d-7c391454628a'; 
+                const WEB3FORMS_ACCESS_KEY = '69301a21-733e-47f9-ab1d-7c391454628a'; // <--- ⚠️ REEMPLAZAR ESTA LLAVE ⚠️
 
-                // Si la llave está vacía, marcamos error, pero NO disparamos un alert()
-                if (!WEB3FORMS_ACCESS_KEY) { 
-                    setSubmissionStatus('error');
-                    console.error("ERROR: La llave de acceso de Web3Forms está vacía. No se guardarán los datos.");
+                if (WEB3FORMS_ACCESS_KEY.includes('69301a21-733e-47f9-ab1d-7c391454628a')) {
+                    alert("¡ADVERTENCIA! Debe reemplazar la '69301a21-733e-47f9-ab1d-7c391454628a' con su llave de Web3Forms (obtenida en https://web3forms.com/) para guardar los datos.");
                     return;
                 }
                 
@@ -291,8 +304,13 @@
                     // CONFIGURACIÓN DE WEB3FORMS:
                     'access_key': WEB3FORMS_ACCESS_KEY,
                     
-                    // DATOS DE CONTACTO
+                    // DATOS DE CONTACTO (AÑADIDOS)
                     'Empresa': companyName,
+                    'Nombre': personName,
+                    'Cargo': position,
+                    'Email': email,
+                    'Teléfono': phone,
+                    'Fecha': new Date().toLocaleString('es-ES'), // Formato legible de fecha/hora
                     
                     // PUNTAJES DE RESUMEN
                     'Puntaje General': `${totalScore}/${getMaxScore()}`,
@@ -313,7 +331,7 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Accept': 'application/json' 
+                            'Accept': 'application/json' // Recomendado por Web3Forms para JSON
                         },
                         body: JSON.stringify(dataToSend)
                     });
@@ -322,6 +340,7 @@
                         setSubmissionStatus('success');
                     } else {
                         setSubmissionStatus('error');
+                        // Web3Forms devuelve una respuesta de texto con detalles en caso de error
                         console.error('Error al enviar los datos:', response.status, await response.text());
                     }
                 } catch (error) {
@@ -329,7 +348,7 @@
                     console.error('Error de red/fetch:', error);
                 }
             };
-            // FIN: FUNCIÓN handleDataCapture CORREGIDA
+            // FIN FUNCIÓN (WEB3FORMS)
 
             if (showResults) {
                 const totalScore = calculateTotalScore();
@@ -337,8 +356,14 @@
                 const radarData = getRadarData();
                 const barData = getBarData();
 
-                // submissionMessage ya no se usa, el estado se lee directamente en el bloque de botones.
                 let submissionMessage = null;
+                if (submissionStatus === 'loading') {
+                    submissionMessage = <span className="text-blue-600 font-bold">...Enviando datos...</span>;
+                } else if (submissionStatus === 'success') {
+                    submissionMessage = <span className="text-green-600 font-bold">✅ Resultados guardados con éxito.</span>;
+                } else if (submissionStatus === 'error') {
+                    submissionMessage = <span className="text-red-600 font-bold">❌ Error al guardar los resultados. Revise la consola.</span>;
+                }
 
 
                 return (
@@ -351,7 +376,13 @@
                                         <h1 className="text-4xl font-bold text-gray-800 mb-2">
                                             Resultados de Madurez Digital
                                         </h1>
-                                        <p className="text-xl text-gray-600">Empresa: {companyName}</p>
+                                        {/* AÑADIDO: Mostrar información de contacto completa */}
+                                        <div className="text-lg text-gray-600 space-y-1">
+                                            <p><strong className="text-gray-800">Empresa:</strong> {companyName}</p>
+                                            <p><strong className="text-gray-800">Contacto:</strong> {personName} (<span className="italic">{position || 'Sin cargo especificado'}</span>)</p>
+                                            <p><strong className="text-gray-800">Email:</strong> {email || 'N/A'} | <strong className="text-gray-800">Teléfono:</strong> {phone || 'N/A'}</p>
+                                        </div>
+                                        {/* FIN AÑADIDO */}
                                     </div>
                                     <button
                                         onClick={resetEvaluation}
@@ -500,36 +531,49 @@
                             </div>
                         </div>
 
-                        {/* INICIO: Bloque de botones MODIFICADO (Elimina Guardar Manual) */}
+                        {/* Action Buttons (Guardar y Descargar) */}
                         <div className="mt-8 flex justify-center flex-col md:flex-row gap-4 p-4 bg-white rounded-xl shadow-lg print:hidden">
+                            {/* Botón Guardar Resultados */}
+                            <button
+                                onClick={handleDataCapture}
+                                disabled={submissionStatus === 'loading' || submissionStatus === 'success'}
+                                className={`
+                                    inline-flex items-center justify-center gap-3 px-8 py-4 text-white text-lg font-bold rounded-xl transition-all shadow-lg
+                                    ${
+                                        submissionStatus === 'loading'
+                                            ? 'bg-gray-400 cursor-not-allowed'
+                                            : submissionStatus === 'success'
+                                            ? 'bg-green-700 cursor-not-allowed'
+                                            : submissionStatus === 'error'
+                                            ? 'bg-red-500 hover:bg-red-600'
+                                            : 'bg-blue-600 hover:bg-blue-700'
+                                    }
+                                `}
+                            >
+                                {submissionStatus === 'loading' && '...Guardando...'}
+                                {submissionStatus === 'success' && '✅ Guardado'}
+                                {submissionStatus === 'error' && '❌ Reintentar Guardar'}
+                                {submissionStatus === 'idle' && '💾 Guardar Resultados Digitalmente'}
+                            </button>
                             
-                            {/* Estado del Guardado (automático) - Sustituye al botón manual */}
-                            <div className="flex items-center justify-center flex-1">
-                                <div className={`px-4 py-3 rounded-xl font-bold text-lg text-center
-                                    ${submissionStatus === 'success' ? 'bg-green-100 text-green-700' : 
-                                      submissionStatus === 'loading' ? 'bg-blue-100 text-blue-700' : 
-                                      submissionStatus === 'error' ? 'bg-red-100 text-red-700' : 'text-gray-600'}`}>
-                                    {submissionStatus === 'loading' && '🔄 Enviando resultados automáticamente...'}
-                                    {submissionStatus === 'success' && '✅ Resultados guardados con éxito.'}
-                                    {submissionStatus === 'error' && '❌ Error al guardar. (Revise su llave de Web3Forms).'}
-                                    {submissionStatus === 'idle' && 'Generando reporte...'}
-                                </div>
+                            {/* Mensaje de estado */}
+                            <div className="text-center md:text-left flex items-center justify-center">
+                                {submissionMessage}
                             </div>
                             
-                            {/* Botón Descargar PDF (Se mantiene) */}
+                            {/* Botón Descargar PDF */}
                             <button
                                 onClick={() => window.print()}
-                                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-purple-600 text-white text-lg font-bold rounded-xl hover:bg-purple-700 transition-all shadow-lg flex-shrink-0"
+                                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-purple-600 text-white text-lg font-bold rounded-xl hover:bg-purple-700 transition-all shadow-lg"
                             >
                                 🖨️ Descargar/Imprimir Reporte
                             </button>
                         </div>
                         <div className="text-center mt-4">
                             <p className="text-gray-500 text-sm">
-                                La captura de datos es automática al hacer clic en 'Ver Resultados'.
+                                Para guardar datos permanentemente, debe configurar un servicio (Formspree/Webhook) y reemplazar la URL en el código.
                             </p>
                         </div>
-                        {/* FIN: Bloque de botones MODIFICADO */}
                     </div>
                 );
             }
@@ -564,21 +608,77 @@
                                 />
                             </div>
 
-                            {/* Company Name Input */}
+                            {/* AÑADIDO: Formulario de Información de Contacto (Step 0) */}
                             {currentStep === 0 && Object.keys(responses).length === 0 && (
                                 <div className="mb-6 p-6 bg-blue-50 rounded-xl">
-                                    <label className="block text-lg font-semibold text-gray-700 mb-3">
-                                        Nombre de su empresa:
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={companyName}
-                                        onChange={(e) => setCompanyName(e.target.value)}
-                                        placeholder="Ej: Agrícola San José"
-                                        className="w-full px-4 py-3 text-lg border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
-                                    />
+                                    <h3 className="text-xl font-bold text-gray-800 mb-4">Información de Contacto</h3>
+                                    
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                                * Nombre de la Empresa
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={companyName}
+                                                onChange={(e) => setCompanyName(e.target.value)}
+                                                placeholder="Ej: Agrícola San José"
+                                                className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                                * Nombre y Apellido del Contacto
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={personName}
+                                                onChange={(e) => setPersonName(e.target.value)}
+                                                placeholder="Ej: Juan Pérez"
+                                                className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                                Cargo / Puesto
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={position}
+                                                onChange={(e) => setPosition(e.target.value)}
+                                                placeholder="Ej: Gerente de Operaciones"
+                                                className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                                Email de Contacto
+                                            </label>
+                                            <input
+                                                type="email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                placeholder="Ej: contacto@empresa.com"
+                                                className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                                Teléfono de Contacto
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                value={phone}
+                                                onChange={(e) => setPhone(e.target.value)}
+                                                placeholder="Ej: +593 99 123 4567"
+                                                className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="mt-4 text-sm text-gray-600">* Campos obligatorios para comenzar.</p>
                                 </div>
                             )}
+                            {/* FIN AÑADIDO */}
 
                             {/* Dimension Progress */}
                             <div className="flex items-center justify-between mb-4">
@@ -658,11 +758,12 @@
 
                             <button
                                 onClick={goToNextStep}
-                                disabled={!isStepComplete() || (currentStep === 0 && companyName.trim() === '')}
+                                // AÑADIDO: Validación de isStepZeroComplete para el paso 0
+                                disabled={!isStepComplete() || (currentStep === 0 && !isStepZeroComplete)}
                                 className={`
                                     flex items-center gap-2 px-6 py-3 rounded-lg font-bold transition-all
                                     ${
-                                        !isStepComplete() || (currentStep === 0 && companyName.trim() === '')
+                                        !isStepComplete() || (currentStep === 0 && !isStepZeroComplete)
                                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                             : currentStep < dimensions.length - 1
                                             ? 'bg-green-500 text-white hover:bg-green-600'
