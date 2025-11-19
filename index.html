@@ -251,13 +251,19 @@
                 setSubmissionStatus('idle');
             };
 
+            // INICIO: CAMBIO 1: Activar guardado automático aquí
             const goToNextStep = () => {
                 if (currentStep < dimensions.length - 1) {
                     setCurrentStep(currentStep + 1);
                 } else if (currentStep === dimensions.length - 1) {
+                    // *** CAMBIO CLAVE: Guardado de datos automático ***
+                    handleDataCapture(); 
+                    
+                    // Muestra la pantalla de resultados
                     setShowResults(true);
                 }
             };
+            // FIN: CAMBIO 1
 
             const goToPrevStep = () => {
                 if (currentStep > 0) {
@@ -265,22 +271,20 @@
                 }
             };
 
-            // NUEVA FUNCIÓN PARA CAPTURA DE DATOS (WEB3FORMS)
-
+            // INICIO: CAMBIO 2: Función handleDataCapture corregida (se elimina la advertencia)
             const handleDataCapture = async () => {
-    // ¡Su llave real está aquí!
-    const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; 
-    
-    // Si la llave de Web3Forms es una cadena vacía, detenemos el envío (solo por precaución)
-    if (!WEB3FORMS_ACCESS_KEY) { 
-        alert("¡ADVERTENCIA! La llave de acceso está vacía. No se guardarán los datos.");
-        return;
-    }
-
-    setSubmissionStatus('loading');
-    const totalScore = calculateTotalScore();
-    const overallLevel = getOverallLevel(totalScore);
+                const WEB3FORMS_ACCESS_KEY = 'b143cd22-5cdf-476b-8197-e8fcbb460be7'; // Llave de acceso del usuario
                 
+                // Bloqueamos si la llave es la genérica de ejemplo (aunque la del usuario ya está aquí)
+                if (!WEB3FORMS_ACCESS_KEY || WEB3FORMS_ACCESS_KEY === 'YOUR_WEB3FORMS_ACCESS_KEY') {
+                    setSubmissionStatus('error');
+                    console.error("ERROR: La llave de acceso de Web3Forms está vacía o es la de ejemplo.");
+                    return;
+                }
+                
+                setSubmissionStatus('loading');
+                const totalScore = calculateTotalScore();
+                const overallLevel = getOverallLevel(totalScore);
 
                 const dataToSend = {
                     // CONFIGURACIÓN DE WEB3FORMS:
@@ -325,7 +329,7 @@
                     console.error('Error de red/fetch:', error);
                 }
             };
-            // FIN NUEVA FUNCIÓN (WEB3FORMS)
+            // FIN: CAMBIO 2
 
             if (showResults) {
                 const totalScore = calculateTotalScore();
@@ -334,6 +338,9 @@
                 const barData = getBarData();
 
                 let submissionMessage = null;
+                // El mensaje de estado ya no es necesario aquí porque está en el bloque de botones modificado.
+                // Sin embargo, mantendremos la lógica de `submissionMessage` para no romper nada, 
+                // aunque la visualización principal viene del bloque de botones.
                 if (submissionStatus === 'loading') {
                     submissionMessage = <span className="text-blue-600 font-bold">...Enviando datos...</span>;
                 } else if (submissionStatus === 'success') {
@@ -505,49 +512,36 @@
                             </div>
                         </div>
 
-                        {/* Action Buttons (Guardar y Descargar) */}
+                        {/* INICIO: CAMBIO 3: Bloque de botones modificado (Eliminado Guardar Manual) */}
                         <div className="mt-8 flex justify-center flex-col md:flex-row gap-4 p-4 bg-white rounded-xl shadow-lg print:hidden">
-                            {/* Botón Guardar Resultados */}
-                            <button
-                                onClick={handleDataCapture}
-                                disabled={submissionStatus === 'loading' || submissionStatus === 'success'}
-                                className={`
-                                    inline-flex items-center justify-center gap-3 px-8 py-4 text-white text-lg font-bold rounded-xl transition-all shadow-lg
-                                    ${
-                                        submissionStatus === 'loading'
-                                            ? 'bg-gray-400 cursor-not-allowed'
-                                            : submissionStatus === 'success'
-                                            ? 'bg-green-700 cursor-not-allowed'
-                                            : submissionStatus === 'error'
-                                            ? 'bg-red-500 hover:bg-red-600'
-                                            : 'bg-blue-600 hover:bg-blue-700'
-                                    }
-                                `}
-                            >
-                                {submissionStatus === 'loading' && '...Guardando...'}
-                                {submissionStatus === 'success' && '✅ Guardado'}
-                                {submissionStatus === 'error' && '❌ Reintentar Guardar'}
-                                {submissionStatus === 'idle' && '💾 Guardar Resultados Digitalmente'}
-                            </button>
                             
-                            {/* Mensaje de estado */}
-                            <div className="text-center md:text-left flex items-center justify-center">
-                                {submissionMessage}
+                            {/* Estado del Guardado (automático) */}
+                            <div className="flex items-center justify-center flex-1">
+                                <div className={`px-4 py-3 rounded-xl font-bold text-lg text-center
+                                    ${submissionStatus === 'success' ? 'bg-green-100 text-green-700' : 
+                                      submissionStatus === 'loading' ? 'bg-blue-100 text-blue-700' : 
+                                      submissionStatus === 'error' ? 'bg-red-100 text-red-700' : 'text-gray-600'}`}>
+                                    {submissionStatus === 'loading' && '🔄 Enviando resultados automáticamente...'}
+                                    {submissionStatus === 'success' && '✅ Resultados guardados con éxito.'}
+                                    {submissionStatus === 'error' && '❌ Error al guardar. (Revise su llave de Web3Forms).'}
+                                    {submissionStatus === 'idle' && 'Generando reporte...'}
+                                </div>
                             </div>
                             
-                            {/* Botón Descargar PDF */}
+                            {/* Botón Descargar PDF (Se mantiene) */}
                             <button
                                 onClick={() => window.print()}
-                                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-purple-600 text-white text-lg font-bold rounded-xl hover:bg-purple-700 transition-all shadow-lg"
+                                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-purple-600 text-white text-lg font-bold rounded-xl hover:bg-purple-700 transition-all shadow-lg flex-shrink-0"
                             >
                                 🖨️ Descargar/Imprimir Reporte
                             </button>
                         </div>
                         <div className="text-center mt-4">
                             <p className="text-gray-500 text-sm">
-                                Para guardar datos permanentemente, debe configurar un servicio (Formspree/Webhook) y reemplazar la URL en el código.
+                                La captura de datos es automática al hacer clic en 'Ver Resultados'.
                             </p>
                         </div>
+                        {/* FIN: CAMBIO 3 */}
                     </div>
                 );
             }
